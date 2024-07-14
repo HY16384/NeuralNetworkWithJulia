@@ -36,11 +36,9 @@ function optimize(self::AdamOptimizer, grad_weight, grad_bias, index)
     self.m_b[index] = self.beta1 .* self.m_b[index] .+ (1 - self.beta1) .* grad_bias
     self.v_b[index] = self.beta2 .* self.v_b[index] .+ (1 - self.beta2) .* (grad_bias .* grad_bias)
     m_h_b = self.m_b[index] ./ (1 - self.beta1 ^ self.t)
-    v_h_b = self.v_b[index] ./ (1- self.beta2 ^ self.t)
+    v_h_b = self.v_b[index] ./ (1 - self.beta2 ^ self.t)
     
     diff_b = self.alpha .* m_h_b ./ (sqrt.(v_h_b) .+ 1e8)
-
-    #TODO 7/14 18:30 diff_bがなぜか1*nにならない問題を解決すること！！
 
     return diff_w, diff_b
 end
@@ -65,7 +63,6 @@ function init(self::Affine, is_with_relu=true)
 end
 
 function forward(self::Affine, input)
-    # println(size(input), size(self.params["weight"]))
     self.params["input"] = input
     weight, bias = self.params["weight"], self.params["bias"]
     return input * weight .+ bias
@@ -75,14 +72,12 @@ function backward(self::Affine, d_output)
     weight, input = self.params["weight"], self.params["input"]
     d_input = d_output * weight'
     self.params["d_weight"] = input' * d_output
-    self.params["d_bias"] = [sum(d_output[:,i]) for i in 1:size(d_output)[2]]
-    # println(size(self.params["d_bias"]))
+    self.params["d_bias"] = hcat([sum(d_output[:,i]) for i in 1:size(d_output)[2]])'
     return d_input
 end
 
 function update_param(self::Affine, optimizer::AdamOptimizer)
     diff_w, diff_b = optimize(optimizer, self.params["d_weight"], self.params["d_bias"], self.index)
-    print(size(diff_b), size(self.params["bias"]))
     self.params["weight"] -= diff_w
     self.params["bias"] -= diff_b
 end
@@ -109,7 +104,7 @@ function backward(self::ReLU, d_output)
     return [is_minus ? 0 : i for (i, is_minus) in zip(d_output, self.params["mask"])]
 end
 
-function update_param(self::ReLU)
+function update_param(self::ReLU, optimizer::AdamOptimizer)
 end
 
 #=
@@ -137,7 +132,7 @@ function backward(self::Sigmoid, d_output)
     return d_output * (1.0 .- d_output) * self.params["output"]
 end
 
-function update_param(self::Sigmoid)
+function update_param(self::Sigmoid, optimizer::AdamOptimizer)
 end
 
 #=
@@ -152,8 +147,8 @@ function init(self::SoftMax) end
 function forward(self::SoftMax, input)
     output = copy(input)
     for i in (1:size(input)[1])
-        m = max(input[i])
-        output[i] = exp.(input[i] .- m) ./ sum(exp.(input[i] .- m))
+        m = maximum(input[i, :])
+        output[i, :] = exp.(input[i, :] .- m) ./ sum(exp.(input[i, :] .- m))
     end
     return output
 end
@@ -162,14 +157,14 @@ function backward(self::SoftMax, d_output)
     return d_output
 end
 
-function update_param(self::SoftMax)
+function update_param(self::SoftMax, optimizer::AdamOptimizer)
 end
 
 #=
 CrossEntropy
 =#
 function cross_entropy_error(output, target)
-    return mean(sum((-target .* log(output)), dim=1))
+    return mean(sum((-target .* log.(output)), dims = 1))
 end
 
 #=
@@ -191,7 +186,7 @@ function init_neural_network(self::NeuralNet, layers_l, is_with_relu)
             push!(self.layers, Sigmoid(Dict()))
         end
     end
-    push!(self.layers, Affine(layers_l[end-1], layers_l[end], Dict(), size(layers_l)))
+    push!(self.layers, Affine(layers_l[end-1], layers_l[end], Dict(), size(layers_l)[1]-1))
     push!(self.layers, SoftMax(Dict()))
 
     for i in 1:size(self.layers)[1]
@@ -266,6 +261,9 @@ function get_acc(prediction, target)
 end
 
 
+#TODO 7/15 0:59 学習していないので修正
+
+
 network = NeuralNet([],[])
 layers_l = [2, 2, 2]
 init_neural_network(network, layers_l, true)
@@ -276,8 +274,8 @@ x_test, y_test = [[1,1],[1,0],[0,1],[0,0]],[0,1,1,0]
 x_train = reduce(hcat, x_train)'
 x_test = reduce(hcat, x_test)'
 
-y_train = [i==j ? 1 : 0 for i in y_train, j in 0:9]
-y_test = [i==j ? 1 : 0 for i in y_test, j in 0:9]
+y_train = [i==j ? 1 : 0 for i in y_train, j in 0:1]
+y_test = [i==j ? 1 : 0 for i in y_test, j in 0:1]
 
 n_val = round(Int64, (size(x_train)[1] * 0.2))
 
