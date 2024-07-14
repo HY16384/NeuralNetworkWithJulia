@@ -1,0 +1,7 @@
+etl_data/
+extract/
+venv/
+data_x.txt
+data_y.txt
+.idea/
+__pycache__/
