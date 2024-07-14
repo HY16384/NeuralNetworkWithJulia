@@ -8,6 +8,8 @@ data_x, data_y = [], []
 
 category_num = 3036
 
+#TODO 7/14 18:30 実行して書き込み行う
+
 for (i, image_label) in enumerate(dir_array)
     println(image_label)
     if image_label!=".DS_Store"

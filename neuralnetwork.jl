@@ -40,7 +40,7 @@ function optimize(self::AdamOptimizer, grad_weight, grad_bias, index)
     
     diff_b = self.alpha .* m_h_b ./ (sqrt.(v_h_b) .+ 1e8)
 
-    ####### diff_bがなぜか1*nにならない問題を解決すること！！
+    #TODO 7/14 18:30 diff_bがなぜか1*nにならない問題を解決すること！！
 
     return diff_w, diff_b
 end
