@@ -1,5 +1,8 @@
 using Statistics
 using StatsBase
+using Plots
+using Printf
+using ProgressBars
 
 #=
 AdamOptimizer
@@ -31,14 +34,14 @@ function optimize(self::AdamOptimizer, grad_weight, grad_bias, index)
     m_h_w = self.m_w[index] ./ (1 - self.beta1 ^ self.t)
     v_h_w = self.v_w[index] ./ (1- self.beta2 ^ self.t)
 
-    diff_w = self.alpha .* m_h_w ./ (sqrt.(v_h_w) .+ 1e8)
+    diff_w = self.alpha .* m_h_w ./ (sqrt.(v_h_w) .+ 1e-8)
 
     self.m_b[index] = self.beta1 .* self.m_b[index] .+ (1 - self.beta1) .* grad_bias
     self.v_b[index] = self.beta2 .* self.v_b[index] .+ (1 - self.beta2) .* (grad_bias .* grad_bias)
     m_h_b = self.m_b[index] ./ (1 - self.beta1 ^ self.t)
     v_h_b = self.v_b[index] ./ (1 - self.beta2 ^ self.t)
     
-    diff_b = self.alpha .* m_h_b ./ (sqrt.(v_h_b) .+ 1e8)
+    diff_b = self.alpha .* m_h_b ./ (sqrt.(v_h_b) .+ 1e-8)
 
     return diff_w, diff_b
 end
@@ -78,8 +81,8 @@ end
 
 function update_param(self::Affine, optimizer::AdamOptimizer)
     diff_w, diff_b = optimize(optimizer, self.params["d_weight"], self.params["d_bias"], self.index)
-    self.params["weight"] -= diff_w
-    self.params["bias"] -= diff_b
+    self.params["weight"] .-= diff_w
+    self.params["bias"] .-= diff_b
 end
 
 #=
@@ -221,8 +224,14 @@ function learn(self::NeuralNet, x_train, y_train, x_val, y_val; learning_rate, b
     layers_l = self.layers_l
     optimizer = AdamOptimizer(learning_rate, 0.9, 0.999, [], [], [], [], 0)
     init(optimizer, layers_l)
+
+    loss_train_l = []
+    acc_train_l = []
+    loss_val_l = []
+    acc_val_l = []
+
     for _ in 1:n_epoch
-        for _ in 1:(size(x_train)[1]//batch_size + 1)
+        for _ in ProgressBar(1:(size(x_train)[1]//batch_size + 1))
             choice = sample(1:size(x_train)[1], batch_size, replace=false)
             
             x_train_batch = [x_train[i, j] for i in choice, j in 1:layers_l[begin]]
@@ -237,13 +246,28 @@ function learn(self::NeuralNet, x_train, y_train, x_val, y_val; learning_rate, b
 
         pred_train = predict(self, x_train)
         pred_val = predict(self, x_val)
+
+        println("-----------------------------")
+
         loss_train = get_loss(pred_train, y_train)
         loss_val = get_loss(pred_val, y_val)
-        println("Training loss: ", loss_train, "Validation Loss: ", loss_val)
+        push!(loss_train_l, loss_train)
+        push!(loss_val_l, loss_val)
+        @printf("Training loss:  %.3f, Validation loss:  %.3f\n", loss_train, loss_val)
         acc_train = get_acc(pred_train, y_train)
-        acc_val = get_acc(pred_val, y_train)
-        println("Training accurecy: ", acc_train, "Validation accurecy: ", acc_val)
+        acc_val = get_acc(pred_val, y_val)
+        push!(acc_train_l, acc_train)
+        push!(acc_val_l, acc_val)
+        @printf("Training accurecy:  %.3f, Validation accurecy:  %.3f\n", acc_train, acc_val)
     end
+    plt_loss = plot(1:n_epoch, loss_train_l, label="loss_train")
+    plt_acc = plot(1:n_epoch, acc_train_l, label="acc_train")
+    display(plot(
+        plot!(plt_loss, 1:n_epoch, loss_val_l , label="loss_val"),
+        plot!(plt_acc, 1:n_epoch, acc_val_l , label="acc_val"),
+        layout = (1, 2)
+    ))
+    savefig("result.png")
 end
 
 function get_loss(prediction, target)
@@ -253,33 +277,9 @@ end
 function get_acc(prediction, target)
     count = 0
     for i in 1:size(prediction)[1]
-        if argmax(prediction[i]) == argmax(target[i])
+        if argmax(prediction[i,:]) == argmax(target[i,:])
             count+=1
         end
     end
     return count / size(prediction)[1]
 end
-
-
-#TODO 7/15 0:59 学習していないので修正
-
-
-network = NeuralNet([],[])
-layers_l = [2, 2, 2]
-init_neural_network(network, layers_l, true)
-
-x_train, y_train = [[1,1],[1,0],[0,1],[0,0],[1,1],[1,0],[0,1],[0,0],[1,1],[1,0],[0,1],[0,0],[1,1],[1,0],[0,1],[0,0],],[0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,]
-x_test, y_test = [[1,1],[1,0],[0,1],[0,0]],[0,1,1,0]
-
-x_train = reduce(hcat, x_train)'
-x_test = reduce(hcat, x_test)'
-
-y_train = [i==j ? 1 : 0 for i in y_train, j in 0:1]
-y_test = [i==j ? 1 : 0 for i in y_test, j in 0:1]
-
-n_val = round(Int64, (size(x_train)[1] * 0.2))
-
-x_val, y_val = x_train[begin:n_val, :], y_train[begin:n_val, :]
-x_train, y_train = x_train[n_val:end, :], y_train[n_val:end, :]
-
-learn(network, x_train, y_train, x_val, y_val, learning_rate=0.001, batch_size=2, n_epoch=30)

@@ -20,4 +20,6 @@ class AffineLayer:
         self.d_weight = np.dot(self.input.T, d_output)
         self.d_bias = np.sum(d_output, axis=0)
 
+        print(self.d_weight, self.d_bias)
+
         return d_input
