@@ -1,30 +1,67 @@
 using JLD2
 using ProgressBars
-x_train = load("/Users/yamadaharuki/Desktop/Python/NeuralNetworkWithJulia/data/data_x.jld2", "data_x")
 
-#TODO 7/15 17:27　メモリ不足で落ちている　なんとかする
+x_train = load("/Users/yamadaharuki/Desktop/Python/NeuralNetworkWithJulia/data/data_x.jld2", "data_x")
 
 println("load done")
 
-println(typeof(x_train))
 
 len = size(x_train)[1]
 
-x_train = reshape(vcat(vcat(x_train...)...), (127*128, len))'
+println(len)
 
-print(size(x_train_mat))
+x_train = x_train[1:71]
 
-@save "data_x_float.jld2" x_train_mat
+len = size(x_train)[1]
 
+count = 1
+nums = 1:len
+
+x_train_chunk = Vector()
+
+for i in ProgressBar(1:71)
+    global nums, x_train_chunk, count
+    x_train_chunk = vcat(x_train_chunk, reduce(vcat, x_train[i]))
+    # if i % 3000 == 0
+    #     save("data_x_"*string(count)*".jld2", x_train_chunk')
+    #     print(size(x_train_chunk'))
+    #     empty!(x_train_chunk)
+    #     count+=1
+    # end
+end
+
+if size(x_train_chunk)[1] != 0
+    @save "data_x_"*string(count)*".jld2" x_train_chunk'
+    empty!(x_train_chunk)
+end
 
 y_train = load("/Users/yamadaharuki/Desktop/Python/NeuralNetworkWithJulia/data/data_y.jld2", "data_y")
 
 println("load done")
 
-println(typeof(y_train))
+y_train = y_train[1:71]
 
-y_train = reduce(vcat, transpose.(x))
+len = size(y_train)[1]
 
-print(size(y_train_mat))
+count = 1
+nums = 1:len
 
-@save "data_y_float.jld2" y_train_mat
+y_train_chunk = Vector()
+
+for i in ProgressBar(1:len)
+    global nums, y_train_chunk, count
+    a = rand(nums)
+    nums = setdiff(nums, [a])
+    y_train_chunk = vcat(x_train_chunk, x)
+    if i % 3000 == 0
+        save("data_y_"*string(count)*".jld2", y_train_chunk')
+        print(size(y_train_chunk'))
+        empty!(y_train_chunk)
+        count+=1
+    end
+end
+
+if size(y_train_chunk)[1] != 0
+    @save "data_y_"*string(count)*".jld2" y_train_chunk'
+    empty!(y_train_chunk)
+end
