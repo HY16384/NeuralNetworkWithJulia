@@ -6,6 +6,7 @@ using ProgressBars
 
 #=
 AdamOptimizer
+https://arxiv.org/pdf/1412.6980
 =#
 mutable struct AdamOptimizer
     alpha
@@ -232,6 +233,7 @@ function learn(self::NeuralNet, x_train, y_train, x_val, y_val; learning_rate, b
 
     for _ in 1:n_epoch
         for _ in ProgressBar(1:(size(x_train)[1]//batch_size + 1))
+            # https://qiita.com/takilog/items/cc888db69669ad90c9e5
             choice = sample(1:size(x_train)[1], batch_size, replace=false)
             
             x_train_batch = [x_train[i, j] for i in choice, j in 1:layers_l[begin]]

@@ -27,7 +27,7 @@ network = NeuralNet([],[])
 layers_l = [16256, 10000, 6000, 4000, 3036]
 init_neural_network(network, layers_l, true)
 
-x_train, y_train = load("/Users/yamadaharuki/Desktop/Python/NeuralNetworkWithJulia/data/data_x.jld2"), load("/Users/yamadaharuki/Desktop/Python/NeuralNetworkWithJulia/data/data_y.jld2")
+x_train, y_train = 
 
 print(size(x_train), size(y_train))
 
