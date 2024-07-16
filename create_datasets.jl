@@ -12,7 +12,6 @@ data_x, data_y = [], []
 category_num = 3036
 
 # count = 1
-
 for (i, image_label) in enumerate(dir_array)
     println(image_label)
     if image_label!=".DS_Store"

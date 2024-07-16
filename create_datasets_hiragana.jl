@@ -9,11 +9,12 @@ dir_array = readdir(raw"/Users/yamadaharuki/Desktop/Python/NeuralNetworkWithJuli
 
 data_x, data_y = Vector(), Vector()
 
-category_num = 72
+category_num = 5
 
+print(dir_array[1:category_num])
 # count = 1
 
-for (i, image_label) in enumerate(dir_array[1:category_num])
+for (i, image_label) in enumerate(dir_array[1:category_num+1])
     global data_x, data_y
     println(image_label)
     if image_label!=".DS_Store"
@@ -58,5 +59,5 @@ end
 #     data_x, data_y = [], []
 # end
 
-@save "data_hiragana_x.jld2" data_x
-@save "data_hiragana_y.jld2" data_y
+@save "data_hiragana_A_x.jld2" data_x
+@save "data_hiragana_A_y.jld2" data_y

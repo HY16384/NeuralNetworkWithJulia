@@ -36,7 +36,7 @@ function init_neural_network(self::NeuralNet, layers_l, is_with_relu, batchsize)
         push!(self.layers, Affine(layers_l[i], layers_l[i+1], Dict(), i))
         if is_with_relu
             # push!(self.layers, BatchNorm((batchsize, layers_l[i+1]), 1, 0, Dict(), i))
-            push!(self.layers, BatchNorm((batchsize, layers_l[i+1]), Dict(), i))
+            # push!(self.layers, BatchNorm((batchsize, layers_l[i+1]), Dict(), i))
             push!(self.layers, ReLU(Dict()))
         else
             push!(self.layers, Sigmoid(Dict()))
@@ -101,7 +101,7 @@ function learn(self::NeuralNet, x_train, y_train, x_val, y_val; learning_rate, b
             update_param(self, optimizer)
         end
 
-        pred_train = predict(self, MtlArray(x_train))
+        pred_train = predict(self, MtlArray(x_train[1:1000, :]))
         pred_val = predict(self, MtlArray(x_val))
 
         println("-----------------------------")
@@ -111,25 +111,28 @@ function learn(self::NeuralNet, x_train, y_train, x_val, y_val; learning_rate, b
         copyto!(pred_train_cpu, pred_train)
         copyto!(pred_val_cpu, pred_val)
 
-        loss_train = get_loss(pred_train_cpu, y_train)
+        loss_train = get_loss(pred_train_cpu, y_train[1:1000, :])
         loss_val = get_loss(pred_val_cpu, y_val)
         push!(loss_train_l, loss_train)
         push!(loss_val_l, loss_val)
         @printf("Training loss:  %.3f, Validation loss:  %.3f\n", loss_train, loss_val)
-        acc_train = get_acc(pred_train_cpu, y_train)
+        acc_train = get_acc(pred_train_cpu, y_train[1:1000, :])
         acc_val = get_acc(pred_val_cpu, y_val)
         push!(acc_train_l, acc_train)
         push!(acc_val_l, acc_val)
         @printf("Training accurecy:  %.3f, Validation accurecy:  %.3f\n", acc_train, acc_val)
+        
+        # plt_loss = plot(1:n_epoch, loss_train_l, label="loss_train")
+        # plt_acc = plot(1:n_epoch, acc_train_l, label="acc_train")
+        # plot = plot(
+        #     plot!(plt_loss, 1:n_epoch, loss_val_l , label="loss_val"),
+        #     plot!(plt_acc, 1:n_epoch, acc_val_l , label="acc_val"),
+        #     layout = (1, 2)
+        # )
+        # savefig(plot, "result.png")
     end
-    plt_loss = plot(1:n_epoch, loss_train_l, label="loss_train")
-    plt_acc = plot(1:n_epoch, acc_train_l, label="acc_train")
-    display(plot(
-        plot!(plt_loss, 1:n_epoch, loss_val_l , label="loss_val"),
-        plot!(plt_acc, 1:n_epoch, acc_val_l , label="acc_val"),
-        layout = (1, 2)
-    ))
-    savefig("result.png")
+
+    return self.layers
 end
 
 function get_loss(prediction, target)
